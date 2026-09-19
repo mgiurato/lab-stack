@@ -1,0 +1,9 @@
+# Copy to node-exporter.yml and replace the hash. The real file is gitignored.
+#
+#   docker run --rm caddy:2 caddy hash-password --plaintext 'your-password'
+#
+# Do NOT escape $ here -- this file is not interpolated by Compose, unlike the same
+# hash where it appears in a .env. The matching plaintext goes in monitoring-stack's
+# prometheus/secrets/lab-stack-scrape-password.
+basic_auth_users:
+  prometheus: $2a$14$REPLACE.WITH.A.REAL.BCRYPT.HASH

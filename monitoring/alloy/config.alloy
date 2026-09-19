@@ -1,0 +1,57 @@
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "service_name"
+  }
+
+  // Which machine these logs came from. Every stack ships to the same Loki, and
+  // without this a container or unit with the same name on two hosts collapses into
+  // one stream -- `sshd` being the obvious case. Hardcoded rather than read from the
+  // environment: this file belongs to exactly one stack, so the value is never in doubt.
+  rule {
+    target_label = "stack"
+    replacement  = "lab-stack"
+  }
+}
+
+loki.source.docker "default" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.containers.output
+  forward_to = [loki.write.default.receiver]
+}
+
+// Loki runs in monitoring-stack, a separate Compose project on a separate host, so it
+// is addressed by IP rather than container name. MONITORING_HOST comes from .env via
+// compose.yml -- a mounted config file cannot be interpolated by Compose, but Alloy's
+// own sys.env() reads it at load time.
+loki.write "default" {
+  endpoint {
+    url = "http://" + sys.env("MONITORING_HOST") + ":3100/loki/api/v1/push"
+  }
+}
+
+// Host-level logs (sshd, etc.) never appear in any container's logs -- they only exist
+// in this host's own systemd journal. Worth more here than on the other stacks: this
+// is the host where something unvetted is most likely to be running, so the record of
+// who logged into it is the record that matters.
+loki.relabel "journal" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "service_name"
+  }
+}
+
+loki.source.journal "host" {
+  forward_to    = [loki.write.default.receiver]
+  relabel_rules = loki.relabel.journal.rules
+  labels        = { source = "host-journal", stack = "lab-stack" }
+}

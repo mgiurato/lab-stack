@@ -1,0 +1,14 @@
+[Unit]
+Description=Apply lab-stack host firewall rules (DOCKER-USER, ingress + egress containment)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+WorkingDirectory=/root/lab-stack
+ExecStart=/root/lab-stack/firewall/apply-rules.sh
+ExecReload=/root/lab-stack/firewall/apply-rules.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+{
+	auto_https off
+	admin off
+}
+
+# Read-only markdown served for documentation-stack's docs.lan viewer, which fetches
+# these files client-side from the browser -- hence the wildcard CORS header. Nothing
+# secret is mounted into /srv (see the docs-server volume list in compose.yml), and
+# docs/audits/ is deliberately not among the mounts.
+:8092 {
+	root * /srv
+	header Access-Control-Allow-Origin "*"
+	header Cache-Control "no-cache"
+	file_server browse
+}

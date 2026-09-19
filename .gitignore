@@ -1,0 +1,74 @@
+# =========================
+# Environment secrets
+# =========================
+
+.env
+.env.*
+!.env.example
+
+# Private keys / certificates
+*.key
+*.pem
+
+
+# =========================
+# Agent runtime
+# =========================
+
+monitoring/alloy/data/
+
+# The scrape credential's bcrypt hash. Generated per host, never committed -- the
+# matching plaintext lives in monitoring-stack's prometheus/secrets/.
+monitoring/web-config/node-exporter.yml
+
+
+# =========================
+# Audit log
+# =========================
+#
+# This repo's remote is PUBLIC, unlike the other three stacks'. docs/audits/ tracks open
+# security findings against a live host -- a running list of what is currently weak and
+# unfixed -- which is the one thing here that should not be world-readable. The file
+# still exists locally and the infosec-audit / docs-drift-audit skills still write to it;
+# it just is not published. Paired with `git rm --cached` when this rule was added.
+#
+# Everything else in the repo is fine to publish: RFC1918 addresses are non-routable and
+# the firewall rules are more useful as an example than they are as a map.
+
+docs/audits/
+
+
+# =========================
+# Workload state
+# =========================
+#
+# Disposable by definition: a workload's data is not backed up and not tracked. If
+# something in here becomes worth keeping, that workload has outgrown this stack.
+
+workloads/*/data/
+workloads/*/config/
+
+
+# =========================
+# Backups / archives
+# =========================
+
+*.tar.gz
+migration/
+
+
+# =========================
+# Temporary files
+# =========================
+
+*.raw
+*.swp
+
+
+# =========================
+# OS / IDE
+# =========================
+
+.DS_Store
+.vscode/
+.idea/

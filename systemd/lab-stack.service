@@ -1,0 +1,16 @@
+[Unit]
+Description=Start lab-stack Docker Compose services
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+WorkingDirectory=/root/lab-stack
+ExecStart=/usr/bin/docker compose --env-file /root/lab-stack/.env up -d --remove-orphans
+ExecStop=/usr/bin/docker compose --env-file /root/lab-stack/.env stop
+ExecReload=/usr/bin/docker compose --env-file /root/lab-stack/.env up -d --remove-orphans
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,189 @@
+name: lab-stack
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Workloads
+  # ---------------------------------------------------------------------------
+  # Everything under this heading is disposable. Nothing else in the lab may
+  # depend on a service here, and a workload that becomes load-bearing has
+  # outgrown this repo -- promote it to its own stack rather than hardening it
+  # in place. See docs/architecture.md.
+
+  # The worked example, and the one this stack was originally imagined for: a
+  # self-hosted PDF editor. Delete it once you have your own workloads; it is
+  # here to be copied, not because the lab needs it.
+  stirling-pdf:
+    image: stirlingtools/stirling-pdf:2.14.3
+
+    container_name: stirling-pdf
+
+    environment:
+      # Its own login. Every workload that offers authentication must enable it:
+      # the lab's Caddy site block has basic_auth in front, but a workload is
+      # also reachable directly on its published port from the LAN.
+      SECURITY_ENABLELOGIN: "true"
+      SECURITY_INITIALLOGIN_USERNAME: ${STIRLING_USERNAME:?set STIRLING_USERNAME in .env}
+      SECURITY_INITIALLOGIN_PASSWORD: ${STIRLING_PASSWORD:?set STIRLING_PASSWORD in .env}
+      DOCKER_ENABLE_SECURITY: "true"
+      LANGS: en_GB
+
+    volumes:
+      - ./workloads/stirling-pdf/data:/usr/share/tessdata
+      - ./workloads/stirling-pdf/config:/configs
+
+    ports:
+      - "8100:8080/tcp"
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging: *default-logging
+
+    networks:
+      - lab-stack
+
+    restart: unless-stopped
+
+
+  # ---------------------------------------------------------------------------
+  # Agents -- this host's own metrics and logs
+  # ---------------------------------------------------------------------------
+  # Every stack runs its own copy of these two; only the servers they feed are
+  # centralised (monitoring-stack). They measure the host, so they cannot be
+  # moved. See monitoring/README.md.
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+
+    container_name: node-exporter
+
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+      # Basic auth, because this port is LAN-published for Prometheus to reach
+      # and its output is a full inventory of the host. The firewall allowlist
+      # is defence in depth, not the only control.
+      - --web.config.file=/etc/node-exporter/web-config.yml
+
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - ./monitoring/web-config/node-exporter.yml:/etc/node-exporter/web-config.yml:ro
+
+    ports:
+      - "9100:9100/tcp"
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging: *default-logging
+
+    networks:
+      - lab-stack
+
+    restart: unless-stopped
+
+
+  alloy:
+    image: grafana/alloy:v1.17.0
+
+    container_name: alloy
+
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+
+    environment:
+      # Read by config.alloy via sys.env() -- Compose cannot interpolate into a
+      # bind-mounted config file, but Alloy's config language reads the
+      # environment at load time.
+      MONITORING_HOST: ${MONITORING_HOST:?set MONITORING_HOST in .env}
+
+    volumes:
+      - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./monitoring/alloy/data:/var/lib/alloy/data
+      # Read-only: Alloy discovers containers and reads their logs, it never
+      # needs to change anything. This mount is why alloy is the highest-value
+      # target in this stack -- see docs/security.md.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log/journal:/var/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
+
+    ports:
+      - "12345:12345/tcp"
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging: *default-logging
+
+    networks:
+      - lab-stack
+
+    restart: unless-stopped
+
+
+  # ---------------------------------------------------------------------------
+  # Documentation
+  # ---------------------------------------------------------------------------
+
+  # Read-only markdown, fetched client-side by documentation-stack's docs.lan
+  # viewer. Mounts this repo's docs FILE BY FILE, never the repo root -- the
+  # root holds .env. docs/audits/ is deliberately not served.
+  docs-server:
+    image: caddy:2.11.4
+
+    container_name: lab-docs-server
+
+    volumes:
+      - ./docs-server/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./README.md:/srv/README.md:ro
+      - ./docs/architecture.md:/srv/docs/architecture.md:ro
+      - ./docs/networking.md:/srv/docs/networking.md:ro
+      - ./docs/operations.md:/srv/docs/operations.md:ro
+      - ./docs/proxmox.md:/srv/docs/proxmox.md:ro
+      - ./docs/security.md:/srv/docs/security.md:ro
+      - ./firewall/README.md:/srv/firewall/README.md:ro
+      - ./monitoring/README.md:/srv/monitoring/README.md:ro
+      - ./workloads/README.md:/srv/workloads/README.md:ro
+
+    ports:
+      - "8092:8092/tcp"
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging: *default-logging
+
+    networks:
+      - lab-stack
+
+    restart: unless-stopped
+
+
+networks:
+
+  lab-stack:
+    name: lab-stack
+
+    driver: bridge
+
+    ipam:
+      config:
+        # Fixed, and distinct from the other stacks (172.19 network, 172.20
+        # monitoring, 172.21 documentation). firewall/apply-rules.sh matches
+        # egress on this exact subnet, so changing it here means changing it
+        # there -- it is the identity of "traffic from a lab workload".
+        - subnet: 172.22.0.0/16
