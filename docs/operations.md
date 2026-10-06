@@ -10,9 +10,14 @@ the lab any privilege — they let the lab be reached, scraped and read.
 in `proxy/caddy/Caddyfile`:
 
 ```
-http://pdf.lan {
+http://search.lan {
     basic_auth { admin {$CADDY_BASIC_AUTH_HASH} }
     reverse_proxy {$LAB_HOST}:8100
+}
+
+http://files.lan {
+    basic_auth { admin {$CADDY_BASIC_AUTH_HASH} }
+    reverse_proxy {$LAB_HOST}:8101
 }
 ```
 
@@ -67,11 +72,11 @@ container**, because that is the only place the rules apply:
 
 ```bash
 # Should FAIL (timeout) -- the LAN is off limits
-docker exec stirling-pdf sh -c 'timeout 5 wget -qO- http://192.168.1.39/admin ; echo "exit=$?"'
-docker exec stirling-pdf sh -c 'timeout 5 wget -qO- https://192.168.1.20:8006 ; echo "exit=$?"'
+docker exec searxng sh -c 'timeout 5 wget -qO- http://192.168.1.39/admin ; echo "exit=$?"'
+docker exec searxng sh -c 'timeout 5 wget -qO- https://192.168.1.20:8006 ; echo "exit=$?"'
 
 # Should SUCCEED -- the internet is open, and these two exceptions exist
-docker exec stirling-pdf sh -c 'timeout 8 wget -qO- https://example.com >/dev/null; echo "exit=$?"'
+docker exec searxng sh -c 'timeout 8 wget -qO- https://example.com >/dev/null; echo "exit=$?"'
 docker exec alloy sh -c 'timeout 5 wget -qO- http://$MONITORING_HOST:3100/ready'
 ```
 

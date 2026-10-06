@@ -102,7 +102,7 @@ from the LAN, so proxy-level auth is not the workload's auth.
 
 ## Environment
 
-`.env` (copy from `.env.example`) is required — `MONITORING_HOST`, `STIRLING_USERNAME`
-and `STIRLING_PASSWORD` are declared required in `compose.yml` and Compose refuses to
-start those services without them. `LAB_HOST` in `.env.example` is a placeholder, not a
-real address; set it when the LXC exists.
+`.env` (copy from `.env.example`) is required — `MONITORING_HOST`, `SEARXNG_SECRET`,
+`SNAPOTTER_PASSWORD`, `POSTGRES_PASSWORD`, `POSTGRES_APP_PASSWORD` and `REDIS_PASSWORD`
+are declared required in `compose.yml` and Compose refuses to start those services
+without them. `LAB_HOST` is the LXC's own address (`192.168.1.50`).

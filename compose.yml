@@ -16,33 +16,198 @@ services:
   # outgrown this repo -- promote it to its own stack rather than hardening it
   # in place. See docs/architecture.md.
 
-  # The worked example, and the one this stack was originally imagined for: a
-  # self-hosted PDF editor. Delete it once you have your own workloads; it is
-  # here to be copied, not because the lab needs it.
-  stirling-pdf:
-    image: stirlingtools/stirling-pdf:2.14.3
+  # SearXNG: a metasearch engine, queried from the LAN. It has no login of its
+  # own, so it holds nothing worth protecting -- no accounts, no stored queries --
+  # and the published port is open to the LAN and VPN like every workload's. It
+  # runs without the limiter (a public-instance feature), so it needs no Valkey.
+  # Upstream: https://docs.searxng.org/admin/installation-docker.html
+  searxng:
+    image: docker.io/searxng/searxng:2026.10.4-d48c4b555
 
-    container_name: stirling-pdf
+    container_name: searxng
 
     environment:
-      # Its own login. Every workload that offers authentication must enable it:
-      # the lab's Caddy site block has basic_auth in front, but a workload is
-      # also reachable directly on its published port from the LAN.
-      SECURITY_ENABLELOGIN: "true"
-      SECURITY_INITIALLOGIN_USERNAME: ${STIRLING_USERNAME:?set STIRLING_USERNAME in .env}
-      SECURITY_INITIALLOGIN_PASSWORD: ${STIRLING_PASSWORD:?set STIRLING_PASSWORD in .env}
-      DOCKER_ENABLE_SECURITY: "true"
-      LANGS: en_GB
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
 
     volumes:
-      - ./workloads/stirling-pdf/data:/usr/share/tessdata
-      - ./workloads/stirling-pdf/config:/configs
+      - ./workloads/searxng/config:/etc/searxng
+      - searxng-cache:/var/cache/searxng
 
     ports:
       - "8100:8080/tcp"
 
     security_opt:
       - no-new-privileges:true
+
+    logging: *default-logging
+
+    networks:
+      - lab-stack
+
+    restart: unless-stopped
+
+
+  # SnapOtter: file processing for images, video, audio, PDF and documents, with
+  # local AI models. Three containers, as upstream ships it (docker/docker-compose.yml
+  # in snapotter-hq/SnapOtter), with its hardening kept but its memory limits LOWERED:
+  # upstream's are 6 GB for the app, 1 GB for PostgreSQL and 512 MB for Redis (7.5 GiB),
+  # which does not fit the 4 GiB LXC this runs in today. At 2 GB the app refuses its
+  # heaviest modes (HQ erase wants 8 GB) and may fail a large video. Restore upstream's
+  # limits when the LXC has 8 GiB (docs/proxmox.md).
+  #
+  # Its login is on and seeded from .env; it forces a password change at the first
+  # sign-in. The official image reports usage analytics (PostHog) until an admin
+  # turns them off in the app -- do that first (workloads/README.md).
+  snapotter:
+    image: snapotter/snapotter:2.2.0
+
+    container_name: snapotter
+
+    environment:
+      AUTH_ENABLED: "true"
+      DEFAULT_USERNAME: admin
+      DEFAULT_PASSWORD: ${SNAPOTTER_PASSWORD:?set SNAPOTTER_PASSWORD in .env}
+      TRUST_PROXY: loopback,linklocal,uniquelocal
+      # Runtime role (DML only), created at boot through the migration URL below.
+      DATABASE_URL: postgres://snapotter_app:${POSTGRES_APP_PASSWORD:?set POSTGRES_APP_PASSWORD in .env}@snapotter-db:5432/snapotter
+      DATABASE_MIGRATION_URL: postgres://snapotter:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@snapotter-db:5432/snapotter
+      REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@snapotter-redis:6379
+
+    volumes:
+      - snapotter-data:/data
+      - snapotter-workspace:/tmp/workspace
+
+    ports:
+      - "8101:1349/tcp"
+
+    depends_on:
+      snapotter-db:
+        condition: service_healthy
+      snapotter-redis:
+        condition: service_healthy
+
+    mem_limit: 2g
+    memswap_limit: 2g
+    cpus: 4
+    pids_limit: 512
+    shm_size: 1gb
+
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+      - FOWNER
+      - KILL
+
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "--max-time", "5", "http://localhost:1349/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+
+    logging: *default-logging
+
+    networks:
+      - lab-stack
+
+    restart: unless-stopped
+
+
+  snapotter-db:
+    image: postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+
+    container_name: snapotter-db
+
+    environment:
+      POSTGRES_USER: snapotter
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: snapotter
+
+    volumes:
+      - snapotter-pgdata:/var/lib/postgresql/data
+
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 2
+    pids_limit: 256
+
+    # Upstream's set: the image starts as root and drops to the postgres user.
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U snapotter -d snapotter"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+    logging: *default-logging
+
+    networks:
+      - lab-stack
+
+    restart: unless-stopped
+
+
+  snapotter-redis:
+    image: redis:8-alpine@sha256:9d317178eceac8454a2284a9e6df2466b93c745529947f0cd42a0fa9609d7005
+
+    container_name: snapotter-redis
+
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+
+    command: >-
+      redis-server
+      --maxmemory-policy noeviction
+      --maxmemory 128mb
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+
+    volumes:
+      - snapotter-redisdata:/data
+
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 2
+    pids_limit: 256
+
+    # Upstream's set: the image starts as root and drops to the redis user.
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
     logging: *default-logging
 
@@ -171,6 +336,16 @@ services:
       - lab-stack
 
     restart: unless-stopped
+
+
+# Workload state, disposable like everything under workloads/: `docker compose down -v`
+# wipes it. Docker-managed, because these images own their directories and chown them.
+volumes:
+  searxng-cache:
+  snapotter-data:
+  snapotter-workspace:
+  snapotter-pgdata:
+  snapotter-redisdata:
 
 
 networks:

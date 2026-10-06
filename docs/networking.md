@@ -21,7 +21,8 @@ here.
 
 | Port | Service | Source allowed | Enforced by |
 | --- | --- | --- | --- |
-| 8100 | `stirling-pdf` | LAN + VPN | `DOCKER_PORTS` |
+| 8100 | `searxng` | LAN + VPN | `DOCKER_PORTS` |
+| 8101 | `snapotter` | LAN + VPN | `DOCKER_PORTS` |
 | 8092 | `docs-server` | LAN + VPN | `DOCKER_PORTS` |
 | 9100 | `node-exporter` | `MONITORING_HOST` | `PEER_PORTS` |
 | 12345 | `alloy` | `MONITORING_HOST` | `PEER_PORTS` |
@@ -34,9 +35,10 @@ its own host).
 
 Inbound:
 
-- A LAN browser → `pdf.lan` → network-stack's Caddy → `LAB_HOST:8100`.
-- A LAN browser → `LAB_HOST:8100` directly. This bypasses Caddy and its `basic_auth`,
-  which is why each workload needs its own login.
+- A LAN browser → `search.lan` or `files.lan` → network-stack's Caddy → `LAB_HOST:8100`
+  or `LAB_HOST:8101`.
+- A LAN browser → `LAB_HOST:8100` or `:8101` directly. This bypasses Caddy and its
+  `basic_auth`, which is why each workload that has a login needs its own on.
 - `docs.lan` → the browser fetches `LAB_HOST:8092` client-side over CORS.
 - monitoring-stack's Prometheus → `LAB_HOST:9100` and `:12345`.
 

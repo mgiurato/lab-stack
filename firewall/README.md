@@ -12,7 +12,8 @@ one exists.
 | Port | Service | Allowed from | Array |
 | --- | --- | --- | --- |
 | 8092 | `docs-server` | LAN + VPN | `DOCKER_PORTS` |
-| 8100 | `stirling-pdf` | LAN + VPN | `DOCKER_PORTS` |
+| 8100 | `searxng` | LAN + VPN | `DOCKER_PORTS` |
+| 8101 | `snapotter` | LAN + VPN | `DOCKER_PORTS` |
 | 9100 | `node-exporter` | `MONITORING_HOST` | `PEER_PORTS` |
 | 12345 | `alloy` | `MONITORING_HOST` | `PEER_PORTS` |
 

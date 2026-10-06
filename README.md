@@ -1,11 +1,10 @@
 # lab-stack
 
-A low-trust sandbox for one-off experiments: a self-hosted PDF editor, a local LLM, a
-tool someone linked to that looked interesting. It is the fourth stack in the lab, and
-the only one that is allowed to break.
+A low-trust sandbox for one-off experiments: a metasearch engine, a file-processing
+toolbox, a local LLM, a tool someone linked to that looked interesting. It is the fourth
+stack in the lab, and the only one that is allowed to break.
 
-> **Not deployed yet.** This repo is complete and reviewed, but nothing in it is
-> running. It is waiting on the second Proxmox node — see
+> **Runs in its own LXC** (CT 104 on pve-01, `192.168.1.50`) — see
 > [Deploying it](#deploying-it). CT 103 is deliberately not an option; the reasoning is
 > in [docs/architecture.md](docs/architecture.md#why-not-ct-103).
 
@@ -43,7 +42,8 @@ systemd/                       Two units: the stack, and the firewall
 
 | Port | Service | Reachable from |
 | --- | --- | --- |
-| 8100 | `stirling-pdf` (example workload) | LAN + VPN |
+| 8100 | `searxng` | LAN + VPN |
+| 8101 | `snapotter` | LAN + VPN |
 | 8092 | `docs-server` | LAN + VPN |
 | 9100 | `node-exporter` | `MONITORING_HOST` only |
 | 12345 | `alloy` | `MONITORING_HOST` only |
@@ -53,11 +53,11 @@ collide with the 8090–8092 docs servers or with anything the other stacks publ
 
 ## Deploying it
 
-When the new node exists and the LXC is created:
+With the LXC created (Docker inside, `nesting=1`):
 
 1. `git clone` this repo to `/root/lab-stack`.
-2. `cp .env.example .env` and fill it in — in particular set `LAB_HOST` to the new
-   container's real address, which the placeholder in `.env.example` is not.
+2. `cp .env.example .env` and fill it in: `LAB_HOST` is the container's address, and every
+   secret under *Workloads* is generated with `openssl rand -hex 24`.
 3. Generate the scrape credential:
    `cp monitoring/web-config/node-exporter.yml.example monitoring/web-config/node-exporter.yml`,
    replace the hash, and put the matching plaintext in monitoring-stack's
