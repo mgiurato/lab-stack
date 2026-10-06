@@ -66,9 +66,14 @@ they are 2 GB, 512 MB and 256 MB. The app refuses its heaviest modes at 2 GB (HQ
 wants 8 GB) and may fail a large video. Restore upstream's limits when the LXC has 8 GiB.
 Its AI models are kept in `snapotter-data`, so disk grows with use.
 
+**SnapOtter 2.2.0 connects to PostgreSQL as the database owner.** The least-privilege
+runtime role arrived in 2.3.0; upstream's `main` compose file already uses it, and with
+2.2.0 the app exits at boot because the role it logs in as does not exist.
+
 **SnapOtter reports usage analytics** (PostHog) from the official image until an admin
-turns them off in the app. Do it at the first sign-in; the files never leave, but the
-usage does, and this stack's egress to the internet is open.
+turns them off in the app, and it initialises Sentry for error reports (`[sentry]
+initialized (errors only)` in its log). Turn the analytics off at the first sign-in; the
+files never leave, but the usage does, and this stack's egress to the internet is open.
 
 Its login is seeded from `SNAPOTTER_PASSWORD` and the app forces a new one at the first
 sign-in. State is in named volumes, so `docker compose down -v` wipes it.

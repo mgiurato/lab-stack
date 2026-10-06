@@ -68,9 +68,11 @@ services:
       DEFAULT_USERNAME: admin
       DEFAULT_PASSWORD: ${SNAPOTTER_PASSWORD:?set SNAPOTTER_PASSWORD in .env}
       TRUST_PROXY: loopback,linklocal,uniquelocal
-      # Runtime role (DML only), created at boot through the migration URL below.
-      DATABASE_URL: postgres://snapotter_app:${POSTGRES_APP_PASSWORD:?set POSTGRES_APP_PASSWORD in .env}@snapotter-db:5432/snapotter
-      DATABASE_MIGRATION_URL: postgres://snapotter:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@snapotter-db:5432/snapotter
+      # 2.2.0 connects as the database owner. The least-privilege runtime role
+      # (DATABASE_MIGRATION_URL plus a DML-only DATABASE_URL) arrived in 2.3.0, and
+      # upstream's main branch, which this file was adapted from, already has it:
+      # with 2.2.0 the app logs in as a role nobody created and exits.
+      DATABASE_URL: postgres://snapotter:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@snapotter-db:5432/snapotter
       REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@snapotter-redis:6379
 
     volumes:
@@ -275,6 +277,9 @@ services:
       # bind-mounted config file, but Alloy's config language reads the
       # environment at load time.
       MONITORING_HOST: ${MONITORING_HOST:?set MONITORING_HOST in .env}
+      # Basic auth for that push -- Loki has no login of its own, so monitoring-stack
+      # fronts it with loki-proxy instead.
+      LOKI_PUSH_PASSWORD: ${LOKI_PUSH_PASSWORD:?set LOKI_PUSH_PASSWORD in .env}
 
     volumes:
       - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro

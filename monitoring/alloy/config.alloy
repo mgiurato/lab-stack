@@ -31,9 +31,17 @@ loki.source.docker "default" {
 // is addressed by IP rather than container name. MONITORING_HOST comes from .env via
 // compose.yml -- a mounted config file cannot be interpolated by Compose, but Alloy's
 // own sys.env() reads it at load time.
+//
+// Loki has no authentication of its own, so monitoring-stack fronts :3100 with
+// loki-proxy's basic_auth instead -- LOKI_PUSH_PASSWORD is the matching plaintext, same
+// pattern as MONITORING_HOST above. See monitoring-stack's monitoring/README.md.
 loki.write "default" {
   endpoint {
     url = "http://" + sys.env("MONITORING_HOST") + ":3100/loki/api/v1/push"
+    basic_auth {
+      username = "loki"
+      password = sys.env("LOKI_PUSH_PASSWORD")
+    }
   }
 }
 
