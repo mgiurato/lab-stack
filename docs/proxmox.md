@@ -11,7 +11,7 @@ setup is in the proxmox-hosts repository.
 | Type | LXC, **unprivileged** | Same as every other container in the lab. Non-negotiable here: unvetted code runs in it |
 | Nesting | `nesting=1` | Required to run Docker inside an LXC |
 | RAM | 4 GiB, swap 1 GiB | Room for SearXNG and SnapOtter with the lowered limits in [compose.yml](../compose.yml). SnapOtter's own limits (app 6 GB, PostgreSQL 1 GB, Redis 512 MB) add up to 7.5 GiB and want 8 GiB; a local LLM wants considerably more — size for what you intend to run |
-| Cores | 4 | A ceiling, not a reservation; CT 103's single core is a real constraint |
+| Cores | 2 | Pins the container to 2 of pve-01's 8 threads, so a runaway workload cannot starve Home Assistant or Jellyfin. SnapOtter's CPU limit in [compose.yml](../compose.yml) matches it: Docker refuses a limit above the cores it can see |
 | Disk | 40 GB | Images dominate, and SnapOtter keeps its AI models in a volume. Model weights do not fit in a modest disk |
 
 ## Backups
