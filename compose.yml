@@ -90,7 +90,7 @@ services:
 
     mem_limit: 2g
     memswap_limit: 2g
-    cpus: 4
+    cpus: 2
     pids_limit: 512
     shm_size: 1gb
 
