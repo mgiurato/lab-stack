@@ -59,6 +59,24 @@ start with a mount error, that is the first thing to check.
 | --- | --- | --- |
 | `stirling-pdf` | 8100 | Self-hosted PDF editing — split, merge, OCR, convert. The worked example; delete it if you don't want it |
 
-Ideas this stack was built for, none of them deployed: a local LLM (size the LXC for it
-first — model weights dominate both RAM and disk), a paperless document archive, a
-recipe manager, whatever the last interesting link was.
+Planned, replacing the Stirling-PDF example before the first deploy; the compose file does
+not have them yet:
+
+- **SearXNG**, a metasearch engine (`searxng/searxng`; the container listens on 8080,
+  configuration lives in `/etc/searxng`, its cache in `/var/cache/searxng`, and settings
+  can be given as `SEARXNG_*` variables).
+- **SnapOtter**, a file-processing toolbox for images, video, audio, PDF and documents,
+  with local AI for OCR, background removal and upscaling (`snapotter/snapotter`, port
+  1349). It runs with PostgreSQL and Redis beside it. Its own compose file caps the app
+  at 6 GB of RAM, PostgreSQL at 1 GB and Redis at 512 MB, so with those limits this stack
+  needs 8 GiB, not the 4 GiB of [proxmox.md](../docs/proxmox.md); the AI models are kept
+  in its data volume, so disk grows too. It ships with the login `admin`/`admin`, which
+  falls under the authentication rule above.
+
+Both are pinned to a release tag when they are added, as every image here is.
+
+Other ideas this stack was built for, none of them deployed: a local LLM (size the LXC for
+it first — model weights dominate both RAM and disk), a paperless document archive,
+whatever the last interesting link was. Something whose data is wanted, such as a recipe
+manager or a food diary, does not belong here: the migration plan in `network-stack`
+puts those in `health-stack`.

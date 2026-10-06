@@ -9,7 +9,7 @@ that hosts CT 103 — see [architecture.md](architecture.md#why-not-ct-103).
 | --- | --- | --- |
 | Type | LXC, **unprivileged** | Same as every other container in the lab. Non-negotiable here: unvetted code runs in it |
 | Nesting | `nesting=1` | Required to run Docker inside an LXC |
-| RAM | 4 GiB to start | Enough for several small workloads. A local LLM wants considerably more — size for what you intend to run |
+| RAM | 4 GiB to start, 8 GiB with SnapOtter | Enough for several small workloads. SnapOtter's own limits (app 6 GB, PostgreSQL 1 GB, Redis 512 MB) add up to 7.5 GiB; a local LLM wants considerably more — size for what you intend to run |
 | Cores | 2+ | CT 103's single core is a real constraint; don't repeat it |
 | Disk | 32 GiB+ | Images dominate. Model weights do not fit in a modest disk |
 
