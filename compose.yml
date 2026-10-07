@@ -233,6 +233,11 @@ services:
 
     container_name: node-exporter
 
+    # The LXC's /proc/meminfo comes from lxcfs, which answers for the reader's PID
+    # namespace. In the container's own namespace that is this one container, so the
+    # memory metrics would describe node-exporter instead of the LXC.
+    pid: host
+
     command:
       - --path.procfs=/host/proc
       - --path.sysfs=/host/sys
