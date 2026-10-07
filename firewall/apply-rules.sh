@@ -33,7 +33,7 @@ from_env() {
 }
 
 NETWORK_HOST="$(from_env NETWORK_HOST 192.168.1.39)"
-MONITORING_HOST="$(from_env MONITORING_HOST 192.168.1.39)"
+MONITORING_HOST="$(from_env MONITORING_HOST 192.168.1.70)"
 
 # ---------------------------------------------------------------------------
 # Helpers

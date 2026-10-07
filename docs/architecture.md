@@ -29,10 +29,10 @@ see the logs of is worse than no sandbox.
 
 ## Why not CT 103
 
-CT 103 already runs `network-stack`, `monitoring-stack` and `documentation-stack` on
-2 GiB of RAM and a single vCPU. Measured with all three up and nobody logged in, the
-containers occupy roughly 700 MiB — comfortable, but the headroom is not enough for a
-local LLM by an order of magnitude, and the one core is the harder limit.
+CT 103 runs `network-stack` on 2 GiB of RAM and a single vCPU (`monitoring-stack` and
+`documentation-stack` have their own containers, CT 106 and CT 107). The headroom is
+not enough for a local LLM by an order of magnitude, and the one core is the harder
+limit.
 
 The capacity argument is the weaker one, though, and it would go away with a bigger
 container. The real reason is the trust model. CT 103 terminates the VPN and answers

@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | `LAB_HOST` | this LXC's LAN address | `.env` — **the `.env.example` value is a placeholder** |
 | `NETWORK_HOST` | `192.168.1.39` | `.env` |
-| `MONITORING_HOST` | `192.168.1.39` | `.env` |
+| `MONITORING_HOST` | `192.168.1.70` | `.env` |
 | Bridge subnet | `172.22.0.0/16` | `compose.yml` `ipam`, and matched in `firewall/apply-rules.sh` |
 
 Within this project, containers reach each other by container name. Across projects,
