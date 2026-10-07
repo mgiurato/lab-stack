@@ -70,10 +70,11 @@ Its AI models are kept in `snapotter-data`, so disk grows with use.
 runtime role arrived in 2.3.0; upstream's `main` compose file already uses it, and with
 2.2.0 the app exits at boot because the role it logs in as does not exist.
 
-**SnapOtter reports usage analytics** (PostHog) from the official image until an admin
-turns them off in the app, and it initialises Sentry for error reports (`[sentry]
-initialized (errors only)` in its log). Turn the analytics off at the first sign-in; the
-files never leave, but the usage does, and this stack's egress to the internet is open.
+**SnapOtter's telemetry is switched off** with `SNAPOTTER_TELEMETRY: "0"` in
+[compose.yml](../compose.yml). The official image otherwise reports usage analytics (PostHog)
+and initialises Sentry for error reports, and this stack's egress to the internet is open.
+The variable overrides the in-app toggle, so nothing needs doing at sign-in; keep it when
+upgrading.
 
 Its login is seeded from `SNAPOTTER_PASSWORD` and the app forces a new one at the first
 sign-in. State is in named volumes, so `docker compose down -v` wipes it.

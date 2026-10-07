@@ -56,8 +56,8 @@ services:
   # limits when the LXC has 8 GiB (docs/proxmox.md).
   #
   # Its login is on and seeded from .env; it forces a password change at the first
-  # sign-in. The official image reports usage analytics (PostHog) until an admin
-  # turns them off in the app -- do that first (workloads/README.md).
+  # sign-in. The official image reports usage analytics (PostHog) and Sentry errors
+  # unless told not to; SNAPOTTER_TELEMETRY=0 below switches both off for good.
   snapotter:
     image: snapotter/snapotter:2.2.0
 
@@ -68,6 +68,8 @@ services:
       DEFAULT_USERNAME: admin
       DEFAULT_PASSWORD: ${SNAPOTTER_PASSWORD:?set SNAPOTTER_PASSWORD in .env}
       TRUST_PROXY: loopback,linklocal,uniquelocal
+      # Kill switch honoured by every build: no analytics, no error reports.
+      SNAPOTTER_TELEMETRY: "0"
       # 2.2.0 connects as the database owner. The least-privilege runtime role
       # (DATABASE_MIGRATION_URL plus a DML-only DATABASE_URL) arrived in 2.3.0, and
       # upstream's main branch, which this file was adapted from, already has it:
