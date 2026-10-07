@@ -17,13 +17,14 @@ setup is in the proxmox-hosts repository.
 ## Backups
 
 **Workload data is deliberately not backed up.** `workloads/*/data/` and
-`workloads/*/config/` are disposable by design — see
+`workloads/*/config/` are disposable by design -- see
 [architecture.md](architecture.md#promotion). If something in there would be missed, the
 workload has outgrown this stack.
 
-What is worth a `vzdump` of the container: `.env` and
-`monitoring/web-config/node-exporter.yml`, both gitignored and both annoying rather than
-catastrophic to lose. Everything else is in git.
+The container itself is dumped nightly to the NAS (`backup-lab-stack` on pve-01: 3 daily,
+2 weekly, 1 monthly; ~6 GB per dump, no local copy). That keeps `.env`,
+`monitoring/web-config/node-exporter.yml` and the named volumes -- annoying rather than
+catastrophic to lose -- and everything else is in git.
 
 This is the one stack where "restore from scratch" is an acceptable recovery plan, and
 the one where it is worth actually exercising — a clean rebuild is cheap here and
