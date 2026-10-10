@@ -60,10 +60,10 @@ start with a mount error, that is the first thing to check.
 | `searxng` | 8100 | Metasearch engine, queried by LAN browsers. It has no login, and holds no accounts or stored queries; it runs without the limiter, so without Valkey. Config in `workloads/searxng/config/`, cache in a named volume |
 | `snapotter` | 8101 | File processing for images, video, audio, PDF and documents, with local AI (OCR, background removal, upscaling). Three containers — the app, PostgreSQL (`snapotter-db`) and Redis (`snapotter-redis`) — with its login on |
 
-**SnapOtter's limits are lowered from upstream's.** Upstream caps the app at 6 GB,
-PostgreSQL at 1 GB and Redis at 512 MB (7.5 GiB); this stack runs in a 4 GiB LXC, so
-they are 2 GB, 512 MB and 256 MB. The app refuses its heaviest modes at 2 GB (HQ erase
-wants 8 GB) and may fail a large video. Restore upstream's limits when the LXC has 8 GiB.
+**SnapOtter runs with upstream's limits**: 6 GB for the app, 1 GB for PostgreSQL and
+512 MB for Redis (7.5 GiB), inside the 8 GiB LXC. Its heaviest mode, HQ erase, wants 8 GB
+and does not fit; a job that fills the app's 6 GB is killed inside the container
+(`memory.events` counts it) and does not reach the host.
 Its AI models are kept in `snapotter-data`, so disk grows with use.
 
 **SnapOtter 2.2.0 connects to PostgreSQL as the database owner.** The least-privilege

@@ -49,11 +49,9 @@ services:
 
   # SnapOtter: file processing for images, video, audio, PDF and documents, with
   # local AI models. Three containers, as upstream ships it (docker/docker-compose.yml
-  # in snapotter-hq/SnapOtter), with its hardening kept but its memory limits LOWERED:
-  # upstream's are 6 GB for the app, 1 GB for PostgreSQL and 512 MB for Redis (7.5 GiB),
-  # which does not fit the 4 GiB LXC this runs in today. At 2 GB the app refuses its
-  # heaviest modes (HQ erase wants 8 GB) and may fail a large video. Restore upstream's
-  # limits when the LXC has 8 GiB (docs/proxmox.md).
+  # in snapotter-hq/SnapOtter), with its hardening kept and upstream's memory limits: 6 GB
+  # for the app, 1 GB for PostgreSQL and 512 MB for Redis (7.5 GiB), which fit the 8 GiB
+  # LXC this runs in (docs/proxmox.md). HQ erase asks for 8 GB and still does not fit.
   #
   # Its login is on and seeded from .env; it forces a password change at the first
   # sign-in. The official image reports usage analytics (PostHog) and Sentry errors
@@ -90,8 +88,8 @@ services:
       snapotter-redis:
         condition: service_healthy
 
-    mem_limit: 2g
-    memswap_limit: 2g
+    mem_limit: 6g
+    memswap_limit: 6g
     cpus: 2
     pids_limit: 512
     shm_size: 1gb
@@ -137,8 +135,8 @@ services:
     volumes:
       - snapotter-pgdata:/var/lib/postgresql/data
 
-    mem_limit: 512m
-    memswap_limit: 512m
+    mem_limit: 1g
+    memswap_limit: 1g
     cpus: 2
     pids_limit: 256
 
@@ -188,8 +186,8 @@ services:
     volumes:
       - snapotter-redisdata:/data
 
-    mem_limit: 256m
-    memswap_limit: 256m
+    mem_limit: 512m
+    memswap_limit: 512m
     cpus: 2
     pids_limit: 256
 
