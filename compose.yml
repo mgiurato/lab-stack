@@ -22,7 +22,7 @@ services:
   # runs without the limiter (a public-instance feature), so it needs no Valkey.
   # Upstream: https://docs.searxng.org/admin/installation-docker.html
   searxng:
-    image: docker.io/searxng/searxng:2026.10.4-d48c4b555
+    image: docker.io/searxng/searxng:2026.10.30-ffa88e3ba
 
     container_name: searxng
 
@@ -123,7 +123,7 @@ services:
 
 
   snapotter-db:
-    image: postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+    image: postgres:17-alpine@sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b
 
     container_name: snapotter-db
 
@@ -169,7 +169,7 @@ services:
 
 
   snapotter-redis:
-    image: redis:8-alpine@sha256:9d317178eceac8454a2284a9e6df2466b93c745529947f0cd42a0fa9609d7005
+    image: redis:8-alpine@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537
 
     container_name: snapotter-redis
 
@@ -227,7 +227,7 @@ services:
   # moved. See monitoring/README.md.
 
   node-exporter:
-    image: prom/node-exporter:v1.9.1
+    image: prom/node-exporter:v1.12.1
 
     container_name: node-exporter
 
@@ -267,7 +267,7 @@ services:
 
 
   alloy:
-    image: grafana/alloy:v1.17.0
+    image: grafana/alloy:v1.21.3
 
     container_name: alloy
 
@@ -318,7 +318,7 @@ services:
   # viewer. Mounts this repo's docs FILE BY FILE, never the repo root -- the
   # root holds .env. docs/audits/ is deliberately not served.
   docs-server:
-    image: caddy:2.11.4
+    image: caddy:2.11.7
 
     container_name: lab-docs-server
 
