@@ -219,82 +219,6 @@ services:
     restart: unless-stopped
 
 
-  # Brewly: homebrewing recipes, stock and batches (mgiurato/homebrew-app), on trial
-  # here. A recipe manager is wanted data and belongs in health-stack; until it moves
-  # there, its database is as disposable as any workload's and is not backed up.
-  #
-  # The image is built on this host from a checkout and tagged with its commit, which
-  # is the pin: cd /root/homebrew-app && git pull && docker build -t brewly:<commit> .
-  # Its login is on: the administrator is created from .env at the first start, while
-  # no user exists. Plain HTTP on the LAN, so cookies are not Secure and browsers do
-  # not offer to install it. /mcp is reachable on the LAN with a per-user token.
-  brewly:
-    image: brewly:b819f57
-
-    container_name: brewly
-
-    environment:
-      APP_BASE_URL: http://${LAB_HOST:?set LAB_HOST in .env}:8102
-      # BREWLY_PUBLIC_HOST is the quick tunnel's random host name, set in .env once
-      # brewly-tunnel prints it
-      ALLOWED_HOSTS: ${LAB_HOST:?set LAB_HOST in .env},${BREWLY_PUBLIC_HOST:-}
-      # forwarded client addresses are believed only from this stack's bridge, where
-      # brewly-tunnel lives, so login throttling sees the real visitor
-      TRUSTED_PROXIES: 172.22.0.0/16
-      COOKIE_SECURE: "false"
-      MCP_ALLOWED_HOSTS: ${LAB_HOST:?set LAB_HOST in .env}:*
-      ADMIN_USERNAME: admin
-      ADMIN_PASSWORD: ${BREWLY_ADMIN_PASSWORD:?set BREWLY_ADMIN_PASSWORD in .env}
-
-    volumes:
-      - brewly-data:/data
-
-    ports:
-      - "8102:8000/tcp"
-
-    security_opt:
-      - no-new-privileges:true
-
-    logging: *default-logging
-
-    networks:
-      - lab-stack
-
-    restart: unless-stopped
-
-
-  # A Cloudflare quick tunnel to Brewly, for testing it from outside the LAN: a random
-  # https://<words>.trycloudflare.com address, printed in this container's log, that
-  # changes whenever the container is recreated. No Cloudflare account or token, and no
-  # published port: it only connects out. Opt-in through its profile, so a plain
-  # `docker compose up -d` leaves it off:
-  #   docker compose --profile brewly-tunnel up -d brewly-tunnel
-  # Brewly answers /mcp with 404 to anything that came through Cloudflare.
-  brewly-tunnel:
-    image: cloudflare/cloudflared:2026.10.7
-
-    container_name: brewly-tunnel
-
-    profiles:
-      - brewly-tunnel
-
-    command: tunnel --no-autoupdate --url http://brewly:8000
-
-    depends_on:
-      brewly:
-        condition: service_healthy
-
-    security_opt:
-      - no-new-privileges:true
-
-    logging: *default-logging
-
-    networks:
-      - lab-stack
-
-    restart: unless-stopped
-
-
   # ---------------------------------------------------------------------------
   # Agents -- this host's own metrics and logs
   # ---------------------------------------------------------------------------
@@ -432,7 +356,6 @@ volumes:
   snapotter-workspace:
   snapotter-pgdata:
   snapotter-redisdata:
-  brewly-data:
 
 
 networks:

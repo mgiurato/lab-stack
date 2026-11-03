@@ -59,7 +59,6 @@ start with a mount error, that is the first thing to check.
 | --- | --- | --- |
 | `searxng` | 8100 | Metasearch engine, queried by LAN browsers. It has no login, and holds no accounts or stored queries; it runs without the limiter, so without Valkey. Config in `workloads/searxng/config/`, cache in a named volume |
 | `snapotter` | 8101 | File processing for images, video, audio, PDF and documents, with local AI (OCR, background removal, upscaling). Three containers — the app, PostgreSQL (`snapotter-db`) and Redis (`snapotter-redis`) — with its login on |
-| `brewly` | 8102 | Homebrewing recipes, stock and batches, with a REST API and MCP. On trial: see below. One container with SQLite in the `brewly-data` volume, its login on |
 
 **SnapOtter runs with upstream's limits**: 6 GB for the app, 1 GB for PostgreSQL and
 512 MB for Redis (7.5 GiB), inside the 8 GiB LXC. Its heaviest mode, HQ erase, wants 8 GB
@@ -82,21 +81,6 @@ sign-in. State is in named volumes, so `docker compose down -v` wipes it.
 
 Both images are pinned: SearXNG to its dated tag, SnapOtter to `2.2.0`, PostgreSQL and
 Redis to the digests upstream pins.
-
-**Brewly is a trial, not its home.** It is a recipe manager, which the paragraph below
-says does not belong here; it runs in the lab until health-stack exists, and its data is
-treated as disposable until then. Its image is built on this host from
-`/root/homebrew-app` and tagged with the commit, which is the pin; its administrator is
-seeded from `BREWLY_ADMIN_PASSWORD` while no user exists. It needs no LAN egress: without
-SMTP settings its emails go to the container log.
-
-**Brewly can be reached from outside through a Cloudflare quick tunnel**, the opt-in
-`brewly-tunnel` service: `docker compose --profile brewly-tunnel up -d brewly-tunnel`,
-then read the `https://*.trycloudflare.com` address from `docker logs brewly-tunnel`, put
-its host name in `BREWLY_PUBLIC_HOST` in `.env` and `docker compose up -d brewly`. The
-address changes whenever the tunnel container is recreated, and Cloudflare gives quick
-tunnels no uptime guarantee: it is for testing, and a lasting address needs a domain on
-Cloudflare and a named tunnel.
 
 Other ideas this stack was built for, none of them deployed: a local LLM (size the LXC for
 it first — model weights dominate both RAM and disk), a paperless document archive,
