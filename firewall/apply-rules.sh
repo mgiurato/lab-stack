@@ -66,6 +66,7 @@ DOCKER_PORTS=(
   "tcp:8092"   # docs-server
   "tcp:8100"   # searxng
   "tcp:8101"   # snapotter
+  "tcp:8102"   # brewly
 )
 
 # Agent ports. These have no login worth the name -- node-exporter has basic auth,
