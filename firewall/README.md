@@ -20,6 +20,11 @@ one exists.
 Allow rules are inserted at the top of the chain, the per-port catch-all `DROP` is
 appended, so a packet is tested against every exception before being dropped.
 
+Port **8102** is cotta, the separate project that shares this LXC
+([architecture.md](../docs/architecture.md#cotta-the-other-tenant-of-ct-104)). This
+script has no entry for it in either array, in `iptables` or `ip6tables`, so nothing
+filters it, and the egress rules below do not match cotta's network either.
+
 `DOCKER_PORTS` is LAN-wide because those services are meant to be browsed. That is a
 network boundary, not an authentication one — each workload carries its own login.
 

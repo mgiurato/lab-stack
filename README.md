@@ -7,6 +7,11 @@ stack in the lab, and the only one that is allowed to break.
 > **Runs in its own LXC** (CT 104 on pve-01, `192.168.1.50`) — see
 > [Deploying it](#deploying-it). CT 103 is deliberately not an option; the reasoning is
 > in [docs/architecture.md](docs/architecture.md#why-not-ct-103).
+>
+> The LXC also runs **cotta**, a homebrewing app deployed from its own repository and
+> reachable from the internet through a Cloudflare Tunnel. It is not part of this stack,
+> and this stack's firewall rules do not cover it. See
+> [docs/architecture.md](docs/architecture.md#cotta-the-other-tenant-of-ct-104).
 
 ## What makes this one different
 
@@ -47,9 +52,11 @@ systemd/                       Two units: the stack, and the firewall
 | 8092 | `docs-server` | LAN + VPN |
 | 9100 | `node-exporter` | `MONITORING_HOST` only |
 | 12345 | `alloy` | `MONITORING_HOST` only |
+| 8102 | `cotta-app-1` (cotta, not this stack) | Unfiltered — not in `apply-rules.sh` |
 
 Workload ports are allocated from **8100 upwards**, one per experiment, so they never
 collide with the 8090–8092 docs servers or with anything the other stacks publish.
+8102 belongs to cotta, so the next free port is 8103.
 
 ## Deploying it
 

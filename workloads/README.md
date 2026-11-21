@@ -9,7 +9,8 @@ is not backed up.
 ## Adding one
 
 1. **Pick the next free port from 8100.** 8090–8092 are the docs servers; the other
-   stacks own everything below that. Keep the container's own port on the right-hand
+   stacks own everything below that. 8102 is cotta's, which shares the LXC but is not a
+   workload, so the next free port is 8103. Keep the container's own port on the right-hand
    side of the mapping, e.g. `"8101:3000/tcp"`.
 
 2. **Add the service to `compose.yml`** under the Workloads heading, with:
@@ -85,5 +86,6 @@ Redis to the digests upstream pins.
 Other ideas this stack was built for, none of them deployed: a local LLM (size the LXC for
 it first — model weights dominate both RAM and disk), a paperless document archive,
 whatever the last interesting link was. Something whose data is wanted, such as a recipe
-manager or a food diary, does not belong here: the migration plan in `network-stack`
-puts those in `health-stack`.
+manager or a food diary, does not belong here as a workload. cotta, the homebrewing app,
+is one: it runs from its own repository as a separate project on this LXC — see
+[../docs/architecture.md](../docs/architecture.md#cotta-the-other-tenant-of-ct-104).

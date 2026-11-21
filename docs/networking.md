@@ -26,10 +26,13 @@ here.
 | 8092 | `docs-server` | LAN + VPN | `DOCKER_PORTS` |
 | 9100 | `node-exporter` | `MONITORING_HOST` | `PEER_PORTS` |
 | 12345 | `alloy` | `MONITORING_HOST` | `PEER_PORTS` |
+| 8102 | `cotta-app-1` (cotta, not this stack) | Anything that reaches `eth0` | Nothing — not in `apply-rules.sh` |
 
-Workload ports start at **8100** and count upwards. The 8090–8092 range is taken by the
-three docs-servers (network 8090, monitoring 8091, lab 8092; media-stack uses 8090 on
-its own host).
+Workload ports start at **8100** and count upwards; 8102 is taken by cotta, which shares
+this LXC but is its own project (see
+[architecture.md](architecture.md#cotta-the-other-tenant-of-ct-104)), so the next free
+one is 8103. The 8090–8092 range is taken by the three docs-servers (network 8090,
+monitoring 8091, lab 8092; media-stack uses 8090 on its own host).
 
 ## Flows
 
@@ -47,6 +50,15 @@ Outbound:
 - `alloy` → `MONITORING_HOST:3100`. The only flow this stack initiates towards another.
 - Any container → the internet. Allowed.
 - Any container → anywhere else on `192.168.1.0/24` or `10.8.0.0/24`. **Dropped.**
+
+Cotta, the other project on this LXC, is outside all of the above:
+
+- A LAN or VPN client → `LAB_HOST:8102` → the app. No firewall rule allows or limits it.
+- `cotta-cloudflared-1` → Cloudflare, outbound, holding the tunnel open. Internet clients
+  reach the app back through it on its public hostname — the one path into CT 104 from
+  outside the LAN.
+- Cotta's containers sit on `cotta_default`, not `172.22.0.0/16`, so the egress drops
+  above do not apply to them.
 
 ## DNS
 
