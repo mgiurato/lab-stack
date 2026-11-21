@@ -81,14 +81,22 @@ into a fourth production stack with the weakest hygiene of the four.
 CT 104 also runs **cotta**, a homebrewing app (recipes, inventory, batches, and an MCP
 endpoint), which is not part of this stack. It is a separate Compose project (`cotta`) from
 its own repository, `mgiurato/homebrew-app`, checked out at `/root/homebrew-app` and
-started from `/root/homebrew-app/deploy/compose.yaml` with the `tunnel` profile. Nothing
+started from `/root/homebrew-app/deploy/compose.yaml`. Nothing
 in this repo defines, starts or configures it — `docker compose` here does not see its
 containers, and its settings live in `/root/homebrew-app/deploy/.env`.
 
 | Container | Image | What it does |
 | --- | --- | --- |
-| `cotta-app-1` | `cotta:<commit>`, built locally from that repo | The app, published on `LAB_HOST:8102` → container port 8000, for LAN and VPN clients (including MCP) |
-| `cotta-cloudflared-1` | `cloudflare/cloudflared` (pinned) | A named Cloudflare Tunnel: an outbound connection that publishes the app on a public hostname, so people outside the LAN can use it |
+| `cotta-app-1` | `cotta:<commit>`, built locally from that repo | The app, web UI and MCP endpoint, published on `LAB_HOST:8102` → container port 8000 |
+
+Clients reach it as `https://cotta.lan` or `https://cotta.pelae-lan.duckdns.org`:
+network-stack's Caddy terminates TLS and proxies to `LAB_HOST:8102`, like every other
+service in the lab. It is LAN/VPN-only. The repo's compose file also defines Cloudflare
+`tunnel` and `quick-tunnel` profiles; neither is started here. Cotta's `.env` carries the
+matching settings: `APP_BASE_URL` is the DuckDNS address, `ALLOWED_HOSTS` and
+`MCP_ALLOWED_HOSTS` list both names (a request under any other `Host` gets a 400, so the
+bare IP and port do not serve the UI), `TRUSTED_PROXIES` is network-stack's
+`192.168.1.39`, `COOKIE_SECURE=true` and `MCP_PUBLIC=false`.
 
 Its data is in the named volume `cotta_cotta-data`, and the app writes its own backups to
 `/root/homebrew-app/deploy/backups`. Both are kept: that data is wanted.
@@ -98,13 +106,10 @@ of what this page says:
 
 - **It is not disposable.** It is exactly what [Promotion](#promotion) moves out of the
   lab. It already has its own repo; it shares only the container.
-- **The lab's firewall rules do not apply to it.** `firewall/apply-rules.sh` matches this
-  stack's ports and the `lab-stack` subnet `172.22.0.0/16`. Cotta's project network
-  (`cotta_default`) has an address range Docker picked itself, so egress containment does
-  not cover it, and port 8102 has no entry in `DOCKER_PORTS`.
-- **It is reachable from the internet.** The tunnel is outbound-only, so no router port
-  forward is involved, but its public hostname brings traffic into CT 104, the container
-  that runs unvetted lab workloads.
+- **Only half of the lab's firewall applies to it.** Port 8102 is in `DOCKER_PORTS`, so
+  ingress is LAN + VPN like a workload's. Egress containment matches the `lab-stack`
+  subnet `172.22.0.0/16`, and cotta's project network (`cotta_default`) has an address
+  range Docker picked itself, so its outbound traffic is not restricted.
 - **This host's agents cover it anyway.** Alloy's Docker discovery picks up every
   container on the host, so cotta's logs reach Loki with the rest, and node-exporter's
   metrics include its load.

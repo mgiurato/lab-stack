@@ -14,6 +14,7 @@ one exists.
 | 8092 | `docs-server` | LAN + VPN | `DOCKER_PORTS` |
 | 8100 | `searxng` | LAN + VPN | `DOCKER_PORTS` |
 | 8101 | `snapotter` | LAN + VPN | `DOCKER_PORTS` |
+| 8102 | `cotta-app-1` (cotta, not this stack) | LAN + VPN | `DOCKER_PORTS` |
 | 9100 | `node-exporter` | `MONITORING_HOST` | `PEER_PORTS` |
 | 12345 | `alloy` | `MONITORING_HOST` | `PEER_PORTS` |
 
@@ -21,9 +22,9 @@ Allow rules are inserted at the top of the chain, the per-port catch-all `DROP` 
 appended, so a packet is tested against every exception before being dropped.
 
 Port **8102** is cotta, the separate project that shares this LXC
-([architecture.md](../docs/architecture.md#cotta-the-other-tenant-of-ct-104)). This
-script has no entry for it in either array, in `iptables` or `ip6tables`, so nothing
-filters it, and the egress rules below do not match cotta's network either.
+([architecture.md](../docs/architecture.md#cotta-the-other-tenant-of-ct-104)). It is in
+`DOCKER_PORTS` like a workload, so it gets the same LAN + VPN allow rules and the IPv6
+blanket drop. The egress rules below do not match cotta's network, though.
 
 `DOCKER_PORTS` is LAN-wide because those services are meant to be browsed. That is a
 network boundary, not an authentication one — each workload carries its own login.

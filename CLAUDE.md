@@ -25,12 +25,13 @@ is the wrong trade even if it fit.
 | `lab-stack` | This one: disposable experiments |
 
 **CT 104 has a second tenant: cotta**, a homebrewing app from its own repository
-(`mgiurato/homebrew-app`, deployed from `/root/homebrew-app/deploy/compose.yaml` with
-`--profile tunnel`; Compose project `cotta`). It publishes `:8102` and runs a
-`cloudflared` tunnel that makes it reachable from the internet. It is meant to stay, and
-it is not a lab workload: don't add it to `compose.yml`, don't treat its data as
-disposable, and don't change it from this repo. This stack's firewall rules cover neither
-its port nor its network (`cotta_default`). Details are in `docs/architecture.md`, "Cotta,
+(`mgiurato/homebrew-app`, deployed from `/root/homebrew-app/deploy/compose.yaml`;
+Compose project `cotta`). It publishes `:8102`, reached as `cotta.lan` /
+`cotta.pelae-lan.duckdns.org` through network-stack's Caddy, and is LAN/VPN-only like
+every other service in the lab — its repo's Cloudflare `tunnel` profile is not used here.
+It is meant to stay, and it is not a lab workload: don't add it to `compose.yml`, don't
+treat its data as disposable, and don't change it from this repo. `DOCKER_PORTS` filters
+its port, but the egress rules do not cover its network (`cotta_default`). Details are in `docs/architecture.md`, "Cotta,
 the other tenant of CT 104".
 
 ## Commands

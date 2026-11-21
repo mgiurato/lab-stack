@@ -66,6 +66,8 @@ DOCKER_PORTS=(
   "tcp:8092"   # docs-server
   "tcp:8100"   # searxng
   "tcp:8101"   # snapotter
+  "tcp:8102"   # cotta -- a separate Compose project on this LXC, not a workload; see
+               # docs/architecture.md. Its port is filtered here all the same.
 )
 
 # Agent ports. These have no login worth the name -- node-exporter has basic auth,

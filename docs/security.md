@@ -61,14 +61,15 @@ workload has access to.
 
 CT 104 also runs cotta, a separate project with its own repository
 ([architecture.md](architecture.md#cotta-the-other-tenant-of-ct-104)). None of the
-posture above covers it: its port 8102 has no firewall rule, its network is not the one
-the egress drops match, and its data is kept rather than disposable. Its Cloudflare
-Tunnel also makes it the one thing on this host that the internet can reach.
+posture above besides ingress covers it: its port 8102 is in `DOCKER_PORTS` (LAN + VPN),
+but its network is not the one the egress drops match, and its data is kept rather than
+disposable. Like the rest of the lab it is not reachable from the internet; LAN and VPN
+clients reach it through network-stack's Caddy, and it has its own login.
 
 The trust model runs in both directions. An unvetted lab workload that escapes its
-container lands in the same LXC as cotta's data and its tunnel credential. And because
-cotta is internet-facing, a flaw in it puts an attacker in the same LXC as the lab's
-`docker.sock`-mounting Alloy.
+container lands in the same LXC as cotta's data. And a flaw in cotta puts whoever
+exploits it in the same LXC as the lab's `docker.sock`-mounting Alloy, with LAN egress
+the lab's own workloads do not have.
 
 ## Secrets
 
@@ -84,10 +85,7 @@ would serve `.env`. `docs/audits/` is excluded from it too.
 
 - Router-level port forwarding. Nothing in this stack is intended to be
   internet-reachable; that depends on the router not forwarding to `LAB_HOST`, which
-  cannot be checked from here. Cotta's public hostname does not depend on a forward —
-  its tunnel is outbound.
-- What cotta's tunnel publishes. Its ingress rules live in the Cloudflare account, not
-  on this host.
+  cannot be checked from here.
 - Proxmox host-level settings (LXC privilege config, resource limits).
 - Whether the router advertises IPv6. The `ip6tables` mirror in
   `firewall/apply-rules.sh` means the published ports fail closed either way.

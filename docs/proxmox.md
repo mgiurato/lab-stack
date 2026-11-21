@@ -29,7 +29,7 @@ catastrophic to lose -- and everything else is in git.
 The same dump is also the only off-host copy of **cotta**, the separate project that
 shares this LXC ([architecture.md](architecture.md#cotta-the-other-tenant-of-ct-104)):
 its `cotta_cotta-data` volume, its own backups in `/root/homebrew-app/deploy/backups`, and
-its `.env` with the tunnel token. That data is wanted, so for cotta, rebuilding from
+its `.env`. That data is wanted, so for cotta, rebuilding from
 scratch is not a recovery plan; restoring the dump is.
 
 For the lab itself, this is the one stack where "restore from scratch" is an acceptable recovery plan, and
@@ -41,8 +41,8 @@ confirms the clone-and-configure path in the README still works.
 Not verifiable from inside the container:
 
 - The LXC is genuinely unprivileged.
-- The router does not forward any port to `LAB_HOST`. Nothing in this stack is meant to
-  be internet-reachable; cotta is, but through its outbound tunnel, not a forward.
+- The router does not forward any port to `LAB_HOST`. Nothing here, cotta included, is
+  meant to be internet-reachable.
 - Resource limits are set, so a runaway workload cannot starve the node. This matters
   more here than for the other stacks: an experiment allocating without bound is a
   normal Tuesday, not an incident.
