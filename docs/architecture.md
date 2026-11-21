@@ -92,9 +92,8 @@ containers, and its settings live in `/root/homebrew-app/deploy/.env`.
 
 Clients reach it as `https://cotta.lan` or `https://cotta.pelae-lan.duckdns.org`:
 network-stack's Caddy terminates TLS and proxies to `LAB_HOST:8102`, like every other
-service in the lab. It is LAN/VPN-only. The repo's compose file also defines Cloudflare
-`tunnel` and `quick-tunnel` profiles; neither is started here. Cotta's `.env` carries the
-matching settings: `APP_BASE_URL` is the DuckDNS address, `ALLOWED_HOSTS` and
+service in the lab. It is LAN/VPN-only, and its compose file defines no other way in.
+Cotta's `.env` carries the matching settings: `APP_BASE_URL` is the DuckDNS address, `ALLOWED_HOSTS` and
 `MCP_ALLOWED_HOSTS` list both names (a request under any other `Host` gets a 400, so the
 bare IP and port do not serve the UI), `TRUSTED_PROXIES` is network-stack's
 `192.168.1.39`, `COOKIE_SECURE=true` and `MCP_PUBLIC=false`.
