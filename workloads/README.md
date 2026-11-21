@@ -11,7 +11,9 @@ is not backed up.
 1. **Pick the next free port from 8100.** 8090–8092 are the lab's docs-server ports; the other
    stacks own everything below that. 8102 is cotta's, which shares the LXC but is not a
    workload, so the next free port is 8103. Keep the container's own port on the right-hand
-   side of the mapping, e.g. `"8101:3000/tcp"`.
+   side of the mapping, e.g. `"8103:3000/tcp"`. The firewall matches the published
+   (left-hand) port through conntrack, so the two sides may differ — see
+   [../firewall/README.md](../firewall/README.md#ingress).
 
 2. **Add the service to `compose.yml`** under the Workloads heading, with:
    - a **pinned** image tag — never `latest`, never a bare major;

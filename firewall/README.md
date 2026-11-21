@@ -33,6 +33,13 @@ network boundary, not an authentication one — each workload carries its own lo
 own. **Never move an entry from `PEER_PORTS` to `DOCKER_PORTS`.** `node-exporter` is a
 full inventory of the host and `alloy` mounts `docker.sock`.
 
+Every rule matches the **published** port through conntrack (`-m conntrack
+--ctorigdstport <port> --ctdir ORIGINAL`), not `--dport`. `DOCKER-USER` sees packets after
+Docker's DNAT, when the destination is already the container's own port, so for a port
+published as `8100:8080` a `--dport 8100` rule never matches and the port goes unfiltered —
+as SearXNG, SnapOtter and cotta were until this match replaced `--dport`. Check a new
+rule's counters (`iptables -L DOCKER-USER -n -v`) once something has connected.
+
 Every rule is scoped `-i eth0`, so it applies to packets arriving from outside the box.
 Container-to-container traffic on a Docker bridge also traverses `DOCKER-USER` — Docker
 enables bridge-netfilter — and a rule without `-i eth0` would drop that too. This bit

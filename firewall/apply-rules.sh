@@ -39,10 +39,16 @@ MONITORING_HOST="$(from_env MONITORING_HOST 192.168.1.70)"
 # Helpers
 # ---------------------------------------------------------------------------
 
+# Ingress rules match the port the client connected to -- conntrack's original
+# destination port -- not --dport. DOCKER-USER sees packets after Docker's DNAT, when the
+# destination is already the container's own port, so a --dport rule for a port published
+# as e.g. 8100:8080 never matches anything and the port goes unfiltered. (That was the
+# case here for every workload until this match replaced --dport.) For a port published
+# with the same number on both sides the two are equivalent.
 docker_user_allow() {
   local proto=$1 port=$2 src=$3
-  iptables -C DOCKER-USER -i eth0 -p "$proto" --dport "$port" -s "$src" -j RETURN 2>/dev/null \
-    || iptables -I DOCKER-USER -i eth0 -p "$proto" --dport "$port" -s "$src" -j RETURN
+  iptables -C DOCKER-USER -i eth0 -p "$proto" -m conntrack --ctorigdstport "$port" --ctdir ORIGINAL -s "$src" -j RETURN 2>/dev/null \
+    || iptables -I DOCKER-USER -i eth0 -p "$proto" -m conntrack --ctorigdstport "$port" --ctdir ORIGINAL -s "$src" -j RETURN
 }
 
 docker_user_drop() {
@@ -51,8 +57,8 @@ docker_user_drop() {
   # between containers on a Docker bridge also traverses DOCKER-USER (Docker enables
   # bridge-netfilter), and a rule without -i eth0 would drop that too -- this bit
   # network-stack live during its own firewall rollout.
-  iptables -C DOCKER-USER -i eth0 -p "$proto" --dport "$port" -j DROP 2>/dev/null \
-    || iptables -A DOCKER-USER -i eth0 -p "$proto" --dport "$port" -j DROP
+  iptables -C DOCKER-USER -i eth0 -p "$proto" -m conntrack --ctorigdstport "$port" --ctdir ORIGINAL -j DROP 2>/dev/null \
+    || iptables -A DOCKER-USER -i eth0 -p "$proto" -m conntrack --ctorigdstport "$port" --ctdir ORIGINAL -j DROP
 }
 
 # ---------------------------------------------------------------------------
@@ -159,8 +165,8 @@ lab_egress_drop "$VPN_SUBNET"
 # blanket-drops rather than allow-then-drop.
 ip6tables_user_drop() {
   local proto=$1 port=$2
-  ip6tables -C DOCKER-USER -i eth0 -p "$proto" --dport "$port" -j DROP 2>/dev/null \
-    || ip6tables -A DOCKER-USER -i eth0 -p "$proto" --dport "$port" -j DROP
+  ip6tables -C DOCKER-USER -i eth0 -p "$proto" -m conntrack --ctorigdstport "$port" --ctdir ORIGINAL -j DROP 2>/dev/null \
+    || ip6tables -A DOCKER-USER -i eth0 -p "$proto" -m conntrack --ctorigdstport "$port" --ctdir ORIGINAL -j DROP
 }
 
 for entry in "${DOCKER_PORTS[@]}" "${PEER_PORTS[@]}"; do
