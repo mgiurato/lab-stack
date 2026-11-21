@@ -99,7 +99,8 @@ bare IP and port do not serve the UI), `TRUSTED_PROXIES` is network-stack's
 `192.168.1.39`, `COOKIE_SECURE=true` and `MCP_PUBLIC=false`.
 
 Its data is in the named volume `cotta_cotta-data`, and the app writes its own backups to
-`/root/homebrew-app/deploy/backups`. Both are kept: that data is wanted.
+`/root/homebrew-app/deploy/backups`, nightly at 02:00 from root's crontab, so each copy is
+already on disk when the 02:30 vzdump of CT 104 runs. Both are kept: that data is wanted.
 
 It sits here rather than in its own LXC by choice, and that makes it the exception to most
 of what this page says:
