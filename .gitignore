@@ -26,7 +26,7 @@ monitoring/web-config/node-exporter.yml
 # Audit log
 # =========================
 #
-# This repo's remote is PUBLIC, unlike the other three stacks'. docs/audits/ tracks open
+# This repo's remote is PUBLIC. docs/audits/ tracks open
 # security findings against a live host -- a running list of what is currently weak and
 # unfixed -- which is the one thing here that should not be world-readable. The file
 # still exists locally and the infosec-audit / docs-drift-audit skills still write to it;

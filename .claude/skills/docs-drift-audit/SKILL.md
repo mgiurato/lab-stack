@@ -18,19 +18,21 @@ still a finding here.
 
 ## Scope
 
-Every doc file: `CLAUDE.md`, `docs/architecture.md`, `docs/networking.md`,
+Every doc file: `CLAUDE.md`, `README.md`, `docs/architecture.md`, `docs/networking.md`,
 `docs/operations.md`, `docs/proxmox.md`, `docs/security.md`, and each component
-`README.md` (`dns/`, `proxy/`, `vpn/`, `ddns/`, `certificates/`, `firewall/`,
-`monitoring/`). Cross-check each against: `compose.yml`, `.env` / `.env.example`,
-`proxy/caddy/Caddyfile`, `dns/pihole/etc-dnsmasq.d/lan.conf`, `monitoring/alloy/config.alloy`,
-`firewall/apply-rules.sh`, `docs-server/Caddyfile`, other config files the docs reference by
-name, and live system state where checkable (`docker compose ps`, `docker port`, `curl`
-against `*.lan` hosts, `iptables -L DOCKER-USER -n`).
+`README.md` (`firewall/`, `monitoring/`, `workloads/`). Cross-check each against:
+`compose.yml`, `.env` / `.env.example`, `firewall/apply-rules.sh`,
+`monitoring/alloy/config.alloy`, `monitoring/web-config/`, `docs-server/Caddyfile`,
+`systemd/*.service`, other config files the docs reference by name, and live system state
+on CT 104 where checkable (`docker compose ps`, `docker port`, `curl` against the
+workload ports and their `*.pelae-lan.duckdns.org` names, `iptables -L DOCKER-USER -n`,
+the egress test in `docs/operations.md`).
 
-**This repo only.** CT 103 runs three Compose projects in three repositories; each has its
-own copy of this skill and its own docs. A claim here about another stack is in scope only
-where this repo is the one making it — e.g. a stale peer address, or a cross-repo link
-that no longer resolves.
+**This repo only.** CT 104 runs this stack and cotta, a separate Compose project from its
+own repository; every other stack is its own repo, in its own LXC, with its own copy of
+this skill and its own docs. A claim here about another stack is in scope only where this
+repo is the one making it — e.g. a stale peer address, a site block or scrape job this
+repo's docs describe, or a cross-repo link that no longer resolves.
 
 
 ## Method
@@ -49,7 +51,8 @@ inherently unverifiable from here (e.g. router-level config) — flag those sepa
 For each extracted claim, find the file that actually governs that behavior and compare:
 
 - Port claims → `compose.yml`'s `ports:` blocks, live `docker port <container>`.
-- Hostname/routing claims → `proxy/caddy/Caddyfile` site blocks, `lan.conf` DNS records.
+- Hostname/routing claims → network-stack's `proxy/caddy/Caddyfile` site blocks and
+  `dns/pihole/etc-dnsmasq.d/lan.conf` records (read-only; they live in that repo).
 - "No auth" / "has auth" claims → actually request the endpoint
   (`curl -s -o /dev/null -w '%{http_code}\n'`) rather than trusting the doc or the last
   audit that made the claim; auth can be added or removed by an unrelated change (e.g. an

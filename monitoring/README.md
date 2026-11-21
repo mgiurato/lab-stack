@@ -26,7 +26,7 @@ a complete inventory of the host. One identity per host:
 Generate one with:
 
 ```bash
-docker run --rm caddy:2 caddy hash-password --plaintext 'your-password'
+docker run --rm caddy:2.11.7 caddy hash-password --plaintext 'your-password'
 ```
 
 `alloy` has no authentication option at all, so for it the firewall allowlist is the
@@ -46,8 +46,11 @@ be running something unvetted, so the record of who logged into it is the record
 matters.
 
 ```bash
-# from monitoring-stack
-curl -s 'localhost:3100/loki/api/v1/query?query={stack="lab-stack"}' | head -c 400
+# on CT 104, in /root/lab-stack -- a non-zero count. loki-proxy requires a login, and
+# the plaintext is this stack's LOKI_PUSH_PASSWORD, read from .env so it is never echoed
+curl -sG -u "loki:$(grep '^LOKI_PUSH_PASSWORD=' .env | cut -d= -f2-)" \
+  "http://$(grep '^MONITORING_HOST=' .env | cut -d= -f2-):3100/loki/api/v1/query" \
+  --data-urlencode 'query=sum(count_over_time({stack="lab-stack"}[5m]))'
 ```
 
 ## What is not monitored

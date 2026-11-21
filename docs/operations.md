@@ -16,10 +16,16 @@ http://search.lan {
 }
 
 http://files.lan {
-    basic_auth { admin {$CADDY_BASIC_AUTH_HASH} }
     reverse_proxy {$LAB_HOST}:8101
 }
 ```
+
+Each has an `https://` twin that adds `tls internal`, and a matching `@search` /
+`@files` handler in the `*.{$DUCKDNS_LAN_DOMAIN}.duckdns.org` site block, so
+`search.pelae-lan.duckdns.org` and `files.pelae-lan.duckdns.org` work with any client
+resolver. Only SearXNG's routes carry `basic_auth`: it has no login of its own, while
+SnapOtter has one and sends its own `Authorization` header, which a proxy-level login
+would collide with.
 
 **2. `network-stack` — DNS.** A record in `dns/pihole/etc-dnsmasq.d/lan.conf` pointing
 the hostname at network-stack's own address, not at `LAB_HOST`.
@@ -46,46 +52,65 @@ in its `firewall/apply-rules.sh` so Alloy may push to Loki. **Not to `PEER_HOSTS
 that list grants the right to read every metric and silence every alert, and the lab has
 no business with either.
 
-**4. `documentation-stack` — docs.** An alias entry in `caddy/docs-site/index.html`
-(`'/lab-stack/(.*)': 'http://<LAB_HOST>:8092/$1'`, plus the bare `/lab-stack/` → README
-entry) and a section in `caddy/docs-site/_sidebar.md`.
+**4. `documentation-stack` — docs.** That stack's Caddy reverse-proxies this docs-server
+server-side, so the browser only ever talks to `docs.lan`:
+
+- an alias pair in `caddy/docs-site/index.html` —
+  `'/lab-stack/(.*)': '/peer-docs/lab-stack/$1'` and
+  `'/lab-stack/': '/peer-docs/lab-stack/README.md'`;
+- a `handle_path /peer-docs/lab-stack/*` block in its `caddy/Caddyfile`,
+  reverse-proxying to `{$LAB_HOST}:8092`;
+- `LAB_HOST` in its `.env` and `.env.example`, and passed through `compose.yml`'s
+  `caddy.environment`;
+- a section in `caddy/docs-site/_sidebar.md`.
 
 ## Verifying a deployment
 
 ```bash
-# This stack
+# This stack -- on CT 104, in /root/lab-stack
 docker compose ps
 curl -s localhost:8092/README.md | head -1
-docker exec alloy sh -c 'wget -qO- localhost:12345/-/ready'
+curl -s localhost:12345/-/ready                                    # "Alloy is ready." (its image has no wget/curl)
 curl -s -o /dev/null -w '%{http_code}\n' localhost:9100/metrics    # 401 — auth required
 
-# From monitoring-stack
-curl -s localhost:9090/api/v1/targets \
+# Logs reaching Loki -- a non-zero count. loki-proxy requires a login; the plaintext is
+# this stack's LOKI_PUSH_PASSWORD, read from .env so it is never echoed
+curl -sG -u "loki:$(grep '^LOKI_PUSH_PASSWORD=' .env | cut -d= -f2-)" \
+  "http://$(grep '^MONITORING_HOST=' .env | cut -d= -f2-):3100/loki/api/v1/query" \
+  --data-urlencode 'query=sum(count_over_time({stack="lab-stack"}[5m]))'
+
+# From monitoring-stack -- on CT 106, in /root/monitoring-stack. Prometheus requires a
+# login; the credential is read from its secrets file, never typed or printed
+curl -s -u "monitoring:$(cat prometheus/secrets/internal-auth-password)" localhost:9090/api/v1/targets \
   | python3 -c "import json,sys; [print(t['health'], t['labels']['job']) for t in json.load(sys.stdin)['data']['activeTargets'] if 'lab' in t['labels']['job']]"
-curl -s 'localhost:3100/loki/api/v1/query?query={stack=\"lab-stack\"}' | head -c 200
 ```
+
+The last one should print `up node-exporter-lab` and `up alloy-lab`.
 
 ### Testing egress containment
 
-The part that is easy to assume and be wrong about. Run it from **inside a workload
-container**, because that is the only place the rules apply:
+The part that is easy to assume and be wrong about. Run it from **a container on the
+`lab-stack` network**, because that is the only place the rules apply. The workload
+images are no use for it — `alloy` has neither `wget` nor `curl`, and `searxng` has no
+`timeout` — so use a throwaway Alpine container, which gets an address in
+`172.22.0.0/16` like any workload:
 
 ```bash
-# Should FAIL (timeout) -- the LAN is off limits
-docker exec searxng sh -c 'timeout 5 wget -qO- http://192.168.1.39/admin ; echo "exit=$?"'
-docker exec searxng sh -c 'timeout 5 wget -qO- https://192.168.1.20:8006 ; echo "exit=$?"'
+# Should FAIL with exit=143 (killed by the timeout) -- the LAN is off limits
+docker run --rm --network lab-stack alpine:3.20 sh -c 'timeout 5 wget -qO- http://192.168.1.39/admin >/dev/null; echo "exit=$?"'
+docker run --rm --network lab-stack alpine:3.20 sh -c 'timeout 5 wget -qO- --no-check-certificate https://192.168.1.20:8006 >/dev/null; echo "exit=$?"'
 
-# Should SUCCEED -- the internet is open, and these two exceptions exist
-docker exec searxng sh -c 'timeout 8 wget -qO- https://example.com >/dev/null; echo "exit=$?"'
-docker exec alloy sh -c 'timeout 5 wget -qO- http://$MONITORING_HOST:3100/ready'
+# Should SUCCEED -- the internet is open, and DNS and Loki are the two LAN exceptions
+docker run --rm --network lab-stack alpine:3.20 sh -c 'timeout 8 wget -qO- https://example.com >/dev/null; echo "exit=$?"'
+docker run --rm --network lab-stack alpine:3.20 sh -c 'timeout 5 nslookup example.com 192.168.1.39 >/dev/null; echo "exit=$?"'
+docker run --rm --network lab-stack alpine:3.20 sh -c 'timeout 5 wget -qO- http://192.168.1.70:3100/ready 2>&1; echo "exit=$?"'
+
+docker image rm alpine:3.20    # leave nothing behind
 ```
 
-A workload image without `wget` or `timeout` can be tested with a throwaway instead:
-
-```bash
-docker run --rm --network lab-stack alpine:3.20 \
-  sh -c 'timeout 5 wget -qO- http://192.168.1.39/admin; echo "exit=$?"'
-```
+The Loki line passes with `server returned error: HTTP/1.1 401 Unauthorized` and
+`exit=1`: loki-proxy asks for a login even on `/ready`, and getting that answer at all
+means the packet got through. Only `exit=143` there means it was dropped.
 
 An `exit=0` on either of the first two means the containment is not in effect. The usual
 cause is the bridge subnet in `compose.yml` no longer matching `LAB_SUBNET` in

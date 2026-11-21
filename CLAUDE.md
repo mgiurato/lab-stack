@@ -9,20 +9,22 @@ A low-trust sandbox for one-off experiments, deployed as a Docker Compose projec
 (`compose.yml`) in its own unprivileged Proxmox LXC. There is no application code to
 build — this repo is Compose service definitions, container configs, and documentation.
 
-**Nothing here is running yet.** The repo is complete and waiting on a Proxmox node with
-capacity. Do not describe it as deployed, and do not add it to another stack's live
-configuration until it is. CT 103 is not a candidate: it has 2 GiB and one vCPU, and
-`docs/architecture.md` explains why colocating unvetted workloads with DNS and the VPN
-is the wrong trade even if it fit.
+**Deployed in CT 104 on pve-01 (`192.168.1.50`)**, checked out at `/root/lab-stack`. CT
+103 is not a candidate: it has 1 GiB and one vCPU, and `docs/architecture.md` explains
+why colocating unvetted workloads with DNS and the VPN is the wrong trade even if it fit.
 
-**This is the fourth stack in the lab**, each its own repo:
+**The lab is seven repos** — six stacks, each in its own LXC, plus the Proxmox node
+runbooks:
 
-| Repo | Owns |
-| --- | --- |
-| `network-stack` | DNS, reverse proxy, VPN, DDNS, certificates, firewall, local agents |
-| `monitoring-stack` | Prometheus, Alertmanager, Grafana, Loki, Uptime Kuma |
-| `documentation-stack` | `home.lan` and `docs.lan` |
-| `lab-stack` | This one: disposable experiments |
+| Repo | Owns | Runs in |
+| --- | --- | --- |
+| `network-stack` | DNS, reverse proxy, VPN, DDNS, certificates, firewall, local agents | CT 103 |
+| `monitoring-stack` | Prometheus, Alertmanager, Grafana, Loki, Uptime Kuma | CT 106 |
+| `documentation-stack` | `home.lan` and `docs.lan` | CT 107 |
+| `media-stack` | Jellyfin and the *arr apps | CT 101 |
+| `lab-stack` | This one: disposable experiments | CT 104 |
+| `health-stack` | Personal health apps: CookTrace, NutriTrace, LiftTrace | CT 105 |
+| `proxmox-hosts` | Runbooks for the Proxmox nodes pve-01 and pve-02 | Docs only, served from CT 103 |
 
 **CT 104 has a second tenant: cotta**, a homebrewing app from its own repository
 (`mgiurato/homebrew-app`, deployed from `/root/homebrew-app/deploy/compose.yaml`;
@@ -48,7 +50,7 @@ Function checks, since `Up` is not proof of health:
 ```bash
 curl -s localhost:8092/README.md | head -1               # docs-server
 curl -su prometheus:<pw> localhost:9100/metrics | head -1 # node-exporter (401 without auth)
-docker exec alloy sh -c 'wget -qO- localhost:12345/-/ready'
+curl -s localhost:12345/-/ready                          # alloy (its image has no wget/curl)
 ```
 
 No test suite, linter, or build step exists in this repo.
@@ -56,7 +58,7 @@ No test suite, linter, or build step exists in this repo.
 ## The rules that make this stack different
 
 Everything below is what separates a sandbox from just another stack. Weakening any of
-them turns this into a fourth production stack with worse hygiene than the other three.
+them turns this into another production stack with worse hygiene than the rest.
 
 **Nothing outside this repo may depend on a workload here.** No other stack's config, no
 alert, no Uptime Kuma monitor that pages. A workload that something has come to rely on
@@ -84,11 +86,13 @@ read every metric in the lab.
 almost no authentication — node-exporter has basic auth, Alloy has none — and Alloy
 mounts `docker.sock`. Never move either into `DOCKER_PORTS`.
 
-**Every workload that has a login must have it enabled.** Caddy's `basic_auth` on
-network-stack gates the *browser* route only; the published port is reachable directly
-from the LAN, so proxy-level auth is not the workload's auth.
+**Every workload that has a login must have it enabled.** network-stack's Caddy adds
+`basic_auth` only in front of a workload with no login of its own (SearXNG); SnapOtter's
+route has none, because the app sends its own `Authorization` header and a proxy-level
+login would collide with it. Either way the published port is reachable directly from
+the LAN, so proxy-level auth is not the workload's auth.
 
-## Conventions shared with the other three repos
+## Conventions shared with the other repos
 
 - **Every image is pinned** to a specific version — never `latest`, never a bare major.
   Bump the tag deliberately.

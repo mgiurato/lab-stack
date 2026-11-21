@@ -3,7 +3,7 @@
 # stack:
 #
 #   1. INGRESS -- restrict this stack's published ports to the sources meant to reach
-#      them, exactly as the other three stacks do.
+#      them, exactly as the other stacks do.
 #   2. EGRESS  -- stop a lab workload from reaching the rest of the LAN. Everything
 #      here is disposable and frequently untrusted; the other stacks are not.
 #
@@ -113,7 +113,7 @@ done
 # tested against every exception before it is dropped.
 #
 # Note these match on -s "$LAB_SUBNET", so they only ever apply to this stack's
-# containers. The other three stacks' rules in the same chain are untouched, and a
+# containers -- not cotta's, which shares this LXC on its own network -- and a
 # workload moved out of this subnet loses the containment with it.
 
 lab_egress_allow() {

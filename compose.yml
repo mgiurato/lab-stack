@@ -314,8 +314,8 @@ services:
   # Documentation
   # ---------------------------------------------------------------------------
 
-  # Read-only markdown, fetched client-side by documentation-stack's docs.lan
-  # viewer. Mounts this repo's docs FILE BY FILE, never the repo root -- the
+  # Read-only markdown, reverse-proxied server-side by documentation-stack's Caddy
+  # for its docs.lan viewer (/peer-docs/lab-stack/). Mounts this repo's docs FILE BY FILE, never the repo root -- the
   # root holds .env. docs/audits/ is deliberately not served.
   docs-server:
     image: caddy:2.11.7

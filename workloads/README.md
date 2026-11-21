@@ -8,7 +8,7 @@ is not backed up.
 
 ## Adding one
 
-1. **Pick the next free port from 8100.** 8090–8092 are the docs servers; the other
+1. **Pick the next free port from 8100.** 8090–8092 are the lab's docs-server ports; the other
    stacks own everything below that. 8102 is cotta's, which shares the LXC but is not a
    workload, so the next free port is 8103. Keep the container's own port on the right-hand
    side of the mapping, e.g. `"8101:3000/tcp"`.
@@ -26,10 +26,12 @@ is not backed up.
 3. **Add the port to `DOCKER_PORTS`** in `firewall/apply-rules.sh` and re-run it. A
    published port with no allow rule is unreachable.
 
-4. **Optionally add a `*.lan` hostname** — the DNS record and Caddy site block live in
-   `network-stack`; the recipe is in
-   [../docs/networking.md](../docs/networking.md#adding-a-lan-hostname). Put
-   `basic_auth` on the site block regardless of the workload's own login.
+4. **Optionally add a hostname** — `<name>.lan` and `<name>.pelae-lan.duckdns.org`. The
+   DNS record, the Caddy site blocks and the DuckDNS handler live in `network-stack`; the
+   recipe is in [../docs/networking.md](../docs/networking.md#adding-a-lan-hostname).
+   Put `basic_auth` on them only if the workload has no login of its own (SearXNG's
+   case); one with its own login keeps it as the only one, and one that sends its own
+   `Authorization` header, like SnapOtter, must not get `basic_auth` — the two collide.
 
 5. **Add a card** to documentation-stack's `caddy/site/index.html` if it is something
    you will actually reach for.

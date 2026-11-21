@@ -29,7 +29,7 @@ see the logs of is worse than no sandbox.
 
 ## Why not CT 103
 
-CT 103 runs `network-stack` on 2 GiB of RAM and a single vCPU (`monitoring-stack` and
+CT 103 runs `network-stack` on 1 GiB of RAM and a single vCPU (`monitoring-stack` and
 `documentation-stack` have their own containers, CT 106 and CT 107). The headroom is
 not enough for a local LLM by an order of magnitude, and the one core is the harder
 limit.
@@ -43,11 +43,12 @@ boundary the rest of the lab is built around. `network-stack`'s own
 `docs/architecture.md` already warns against exactly this in the case of Prometheus and
 Loki, which are at least trusted software.
 
-So: its own LXC on the second Proxmox node, unprivileged like the others.
+So: its own LXC, CT 104 on pve-01 — the node that does not run CT 103 — unprivileged
+like the others.
 
 ## Why egress containment, and only here
 
-The other three stacks talk to each other across the LAN constantly — Caddy proxies to
+The other stacks talk to each other across the LAN constantly — Caddy proxies to
 all of them, Prometheus scrapes all of them, Alloy pushes from all of them. Restricting
 their egress would mean maintaining an allowlist that changes every time a service is
 added.
@@ -74,7 +75,7 @@ often they show up:
 The move is the same recipe every stack here already follows: its own repo, its own
 firewall script, its own docs-server, its own agents, an entry in Prometheus and a site
 block in Caddy. Hardening a workload in place instead is how a sandbox quietly turns
-into a fourth production stack with the weakest hygiene of the four.
+into another production stack with the weakest hygiene in the lab.
 
 ## Cotta, the other tenant of CT 104
 

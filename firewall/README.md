@@ -1,8 +1,8 @@
 # Firewall — lab-stack
 
 `apply-rules.sh` is idempotent and runs at boot via `lab-stack-firewall.service`. It
-appends to the same `DOCKER-USER` chain the other stacks use, matching only this stack's
-ports and subnet, so the four scripts coexist without touching each other's rules.
+owns this LXC's `DOCKER-USER` chain — every stack has its own LXC, and so its own chain —
+and matches only this stack's ports and subnet.
 
 It does two things. The first is the same as every other stack. The second is why this
 one exists.
@@ -73,7 +73,7 @@ scoped to that host and port, with a comment saying why:
 
 ```bash
 # <workload> needs <thing> on the NAS for <reason>
-lab_egress_allow tcp 445 192.168.1.50
+lab_egress_allow tcp 445 <nas-address>
 ```
 
 Never widen an exception to a subnet, and never remove the catch-all drops. An

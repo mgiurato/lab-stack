@@ -1,8 +1,8 @@
 # lab-stack
 
 A low-trust sandbox for one-off experiments: a metasearch engine, a file-processing
-toolbox, a local LLM, a tool someone linked to that looked interesting. It is the fourth
-stack in the lab, and the only one that is allowed to break.
+toolbox, a local LLM, a tool someone linked to that looked interesting. It is one of the
+lab's six stacks, and the only one that is allowed to break.
 
 > **Runs in its own LXC** (CT 104 on pve-01, `192.168.1.50`) — see
 > [Deploying it](#deploying-it). CT 103 is deliberately not an option; the reasoning is
@@ -15,8 +15,8 @@ stack in the lab, and the only one that is allowed to break.
 
 ## What makes this one different
 
-The other three stacks — `network-stack`, `monitoring-stack`, `documentation-stack` —
-exist to provide a service, and are built so that service keeps working. This one exists
+The other stacks — `network-stack`, `monitoring-stack`, `documentation-stack`,
+`media-stack`, `health-stack` — exist to provide a service, and are built so that service keeps working. This one exists
 to run things whose behaviour nobody has checked. Three consequences shape the whole
 repo:
 
@@ -38,7 +38,7 @@ compose.yml                    Workloads + the two host agents + docs-server
 workloads/                     One directory per experiment; state gitignored
 monitoring/                    node-exporter and Alloy — this host's own agents
 firewall/apply-rules.sh        Ingress allowlist + egress containment
-docs-server/                   Read-only CORS markdown for docs.lan, :8092
+docs-server/                   Read-only markdown for docs.lan, :8092
 docs/                          architecture, networking, operations, proxmox, security
 systemd/                       Two units: the stack, and the firewall
 ```
@@ -55,7 +55,8 @@ systemd/                       Two units: the stack, and the firewall
 | 8102 | `cotta-app-1` (cotta, not this stack) | LAN + VPN |
 
 Workload ports are allocated from **8100 upwards**, one per experiment, so they never
-collide with the 8090–8092 docs servers or with anything the other stacks publish.
+collide with the 8090–8092 range the lab's docs-servers use or with anything the other
+stacks publish.
 8102 belongs to cotta, so the next free port is 8103.
 
 ## Deploying it

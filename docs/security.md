@@ -2,7 +2,7 @@
 
 ## Trust model
 
-The other three stacks treat the LAN as the trust boundary. This one does not trust
+The other stacks treat the LAN as the trust boundary. This one does not trust
 itself.
 
 A workload here is assumed to be, at best, unreviewed: an image whose provenance nobody
@@ -11,7 +11,7 @@ assumption is survivable rather than being talked out of.
 
 | Direction | Posture |
 | --- | --- |
-| LAN → workload | Allowed. Each workload carries its own login; Caddy adds `basic_auth` on the browser route |
+| LAN → workload | Allowed. A workload with a login has it on (SnapOtter); SearXNG has none, so Caddy adds `basic_auth` on its browser route |
 | LAN → agents | `MONITORING_HOST` only, via `PEER_PORTS` |
 | Workload → LAN/VPN | **Dropped**, except DNS to `NETWORK_HOST` and Loki to `MONITORING_HOST` |
 | Workload → internet | Allowed — accepted risk, see below |
@@ -37,10 +37,13 @@ They do **not** stop:
 
 ## Rules
 
-**Every workload with an authentication option must have it enabled.** Caddy's
-`basic_auth` gates the browser route through `*.lan` only — the published port on
-`LAB_HOST` is directly reachable from any LAN device, and a reverse proxy in front of an
-origin that is still reachable on its own port is not an access control.
+**Every workload with an authentication option must have it enabled.** network-stack's
+Caddy adds `basic_auth` only where a workload has no login of its own (SearXNG's route);
+SnapOtter relies on its own login, and sends its own `Authorization` header, which a
+proxy-level login would collide with. Where Caddy's `basic_auth` exists it gates only the
+browser route through the `*.lan` and DuckDNS names — the published port on `LAB_HOST`
+is directly reachable from any LAN device, and a reverse proxy in front of an origin that
+is still reachable on its own port is not an access control.
 
 **Never grant this stack an entry in another stack's `PEER_HOSTS`.** The lab initiates
 nothing towards the other stacks except Alloy's log push. An entry in
